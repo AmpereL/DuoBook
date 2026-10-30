@@ -14,6 +14,11 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/AmpereL/DuoBook/releases/download/v1.2.10/LogicReading-1.2.10-macOS-arm64.dmg"><img src="https://img.shields.io/badge/下载-macOS_Apple_Silicon_DMG-285643?style=for-the-badge&logo=apple" alt="下载 macOS Apple Silicon 公开版 DMG" /></a>
+  <a href="https://github.com/AmpereL/DuoBook/releases"><img src="https://img.shields.io/badge/GitHub-所有发行版本-181717?style=for-the-badge&logo=github" alt="查看 GitHub Releases" /></a>
+</p>
+
+<p align="center">
   <a href="#下载安装">下载安装</a> ·
   <a href="#功能亮点">功能亮点</a> ·
   <a href="#截图导览">截图导览</a> ·
@@ -27,10 +32,6 @@
 
 ## 下载安装
 
-<p>
-  <a href="https://github.com/AmpereL/DuoBook/releases/download/v1.2.10/LogicReading-1.2.10-macOS-arm64.dmg"><img src="https://img.shields.io/badge/下载-macOS_Apple_Silicon_DMG-285643?style=for-the-badge&logo=apple" alt="下载 macOS Apple Silicon 公开版 DMG" /></a>
-  <a href="https://github.com/AmpereL/DuoBook/releases"><img src="https://img.shields.io/badge/GitHub-所有发行版本-181717?style=for-the-badge&logo=github" alt="查看 GitHub Releases" /></a>
-</p>
 
 | 文件 | 下载 |
 | --- | --- |

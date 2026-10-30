@@ -51,3 +51,7 @@ GitHub 登录凭据仅由系统的 GitHub CLI / 安全存储管理，不写入�
 ## 验证边界
 
 当前是 ad-hoc 签名，未做 Developer ID 签名及 Apple 公证；目标 macOS 13 尚无真机验收。完整桌面启动在 macOS 15 验证。本轮发布不增加 Intel、Windows、Linux 构建或自动更新。
+
+## 1.2.10 发布结果
+
+[Release v1.2.10](https://github.com/AmpereL/DuoBook/releases/tag/v1.2.10) 已发布为 Latest。五个公开资产的远程大小与 SHA-256 均与本地一致，匿名 DMG 下载返回 HTTP 200。README 顶部提供直接下载按钮。私人预配置安装包未上传。
