@@ -4,6 +4,7 @@ import { Highlighter, NotebookPen, Save, Trash2, X } from "lucide-react";
 import { api, ApiError } from "../api";
 import type { Annotation, Paragraph } from "../types";
 import { SpeechReader } from "./SpeechReader";
+import { highlightedText } from "./OriginalTextHighlight";
 
 type TextSelection = {
   paragraphId: string;
@@ -13,25 +14,6 @@ type TextSelection = {
   left: number;
   top: number;
 };
-
-function highlightedText(text: string, paragraphId: string, annotations: Annotation[]) {
-  const characters = Array.from(text);
-  const intervals = annotations.flatMap((annotation) =>
-    annotation.anchors
-      .filter((anchor) => anchor.paragraph_id === paragraphId)
-      .map((anchor) => [anchor.start_offset, anchor.end_offset] as const),
-  );
-  const boundaries = [...new Set([0, characters.length, ...intervals.flat()])]
-    .filter((offset) => offset >= 0 && offset <= characters.length)
-    .sort((a, b) => a - b);
-  return boundaries.slice(0, -1).map((start, index) => {
-    const end = boundaries[index + 1];
-    const content = characters.slice(start, end).join("");
-    return intervals.some(([from, to]) => from < end && to > start)
-      ? <mark key={start} className="unit-original__highlight">{content}</mark>
-      : <span key={start}>{content}</span>;
-  });
-}
 
 export function OriginalTextAnnotator({
   paragraphs,

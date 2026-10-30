@@ -27,6 +27,10 @@ const assert = require('node:assert/strict');
     });
     await page.goto(new URL(`/books/${book.id}/chapters/${book.chapterId}`, page.url()).toString());
     await page.locator('main[data-reading-position-ready=true]').waitFor();
+    // macOS occlusion can mark a background test window hidden; real scrolling
+    // needs a visible foreground window before exercising immediate quit.
+    await app.evaluate(({ app, BrowserWindow }) => { app.focus({ steal: true }); const window = BrowserWindow.getAllWindows()[0]; window.show(); window.focus(); });
+    await page.waitForFunction(() => document.visibilityState === 'visible');
     targetId = await page.locator('[data-reading-paragraph]').nth(13).getAttribute('data-reading-paragraph');
     await page.locator(`#paragraph-${targetId}`).evaluate(element => {
       const rect = element.getBoundingClientRect();

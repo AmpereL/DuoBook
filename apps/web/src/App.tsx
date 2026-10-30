@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from "re
 import { LoaderCircle } from "lucide-react";
 import { flushReadingPositions } from "./readingPosition";
 import { stopReadingSpeech } from "./speech";
+import { useQueryClient } from "@tanstack/react-query";
 
 const LibraryPage = lazy(() =>
   import("./pages/LibraryPage").then((module) => ({
@@ -44,7 +45,11 @@ function LegacyBookRedirect() {
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
-  useEffect(() => window.duobookDesktop?.onCompactReturn((path) => navigate(path, { state: { restoreReadingPosition: true } })), [navigate]);
+  const client = useQueryClient();
+  useEffect(() => window.duobookDesktop?.onCompactReturn(async (path) => {
+    await Promise.all(["chapter", "reading-unit", "notes"].map((key) => client.invalidateQueries({ queryKey: [key] })));
+    navigate(path, { state: { restoreReadingPosition: true } });
+  }), [navigate, client]);
   useEffect(() => window.duobookDesktop?.onFlushReadingPosition(flushReadingPositions), []);
   useEffect(() => window.duobookDesktop?.onCompactVisibility((hidden) => {
     document.documentElement.dataset.compactWindowHidden = String(hidden);

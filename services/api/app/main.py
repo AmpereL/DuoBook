@@ -909,6 +909,25 @@ def list_chapters(book_id: str) -> dict[str, Any]:
     }
 
 
+def _reading_progress(book: dict[str, Any], paragraphs: list[dict[str, Any]]) -> dict[str, Any]:
+    """Count source characters once, independent of reading-unit split versions."""
+    targets = {paragraph["id"] for paragraph in paragraphs}
+    rows = db.query(
+        """SELECT p.id, LENGTH(p.text) AS character_count
+           FROM chapters c JOIN paragraphs p ON p.chapter_id = c.id
+           WHERE c.version_id = ? ORDER BY c.ordinal, c.id, p.ordinal, p.id""",
+        (book["current_version_id"],),
+    )
+    total = 0
+    anchors = []
+    for row in rows:
+        if row["id"] in targets:
+            anchors.append({"paragraph_id": row["id"], "start_character": total,
+                            "character_count": row["character_count"]})
+        total += row["character_count"]
+    return {"total_characters": total, "paragraphs": anchors}
+
+
 @app.get("/api/v1/books/{book_id}/chapters/{chapter_id}")
 def get_chapter(book_id: str, chapter_id: str) -> dict[str, Any]:
     book = _book_or_404(book_id)
@@ -954,6 +973,7 @@ def get_chapter(book_id: str, chapter_id: str) -> dict[str, Any]:
         "book": _book_payload(book),
         "chapter": payload,
         "paragraphs": paragraphs,
+        "reading_progress": _reading_progress(book, paragraphs),
         "annotations": [_annotation_payload(annotation) for annotation in annotations],
         "units": units,
         "history": history,
@@ -1118,6 +1138,7 @@ def get_reading_unit(unit_id: str) -> dict[str, Any]:
         },
         "unit": unit,
         "paragraphs": paragraphs,
+        "reading_progress": _reading_progress(book, paragraphs),
         "sections": sections,
         "annotations": [_annotation_payload(annotation) for annotation in annotations],
     }

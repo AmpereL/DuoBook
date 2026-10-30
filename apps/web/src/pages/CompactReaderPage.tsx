@@ -8,6 +8,8 @@ import { idleSpeech, loadSpeechSettings, MIMO_VOICES, ReaderSpeechPlayer, type S
 import type { Paragraph } from "../types";
 import { flushReadingPositions, rememberReadingPosition } from "../readingPosition";
 import { CompactShortcutSettings } from "../components/CompactShortcutSettings";
+import { highlightedText } from "../components/OriginalTextHighlight";
+import { useCompactAnnotation } from "../components/useCompactAnnotation";
 
 const native = () => Boolean(window.duobookDesktop);
 export function CompactReaderPage() {
@@ -60,6 +62,7 @@ function CompactReader({ initialError }: { initialError: string }) {
   const panel = useRef<HTMLDivElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
   const autoStart = useRef(location.state?.autoPlay === true);
+  const pausedForSelection = useRef(false);
   const startAtEnd = useRef(location.state?.startAtEnd === true);
   const autoAdvance = useRef<() => void>(() => {});
   const wheel = useRef({ accumulated: 0, last: 0, changed: 0 });
@@ -82,15 +85,29 @@ function CompactReader({ initialError }: { initialError: string }) {
     }
     return { total, offsets };
   }, [sourceKey]);
-  const progress = chunk && progressSource.total && progressSource.offsets.has(chunk.paragraphId)
+  const sourceProgress = chunk && progressSource.total && progressSource.offsets.has(chunk.paragraphId)
     ? Math.min(100, (progressSource.offsets.get(chunk.paragraphId)! + chunk.end) / progressSource.total * 100).toFixed(2) : null;
-  const progressLabel = unitId ? "本单元进度" : "本章进度";
+  const bookSource = source.data?.reading_progress;
+  const bookAnchor = bookSource?.paragraphs.find((item) => item.paragraph_id === chunk?.paragraphId);
+  const bookProgress = chunk && bookAnchor && bookSource?.total_characters
+    ? Math.min(100, (bookAnchor.start_character + chunk.end) / bookSource.total_characters * 100).toFixed(2) : null;
+  const sourceProgressLabel = unitId ? "本单元进度" : "本章进度";
+  const progress = prefs.progressScope === "book" ? bookProgress : sourceProgress;
+  const progressLabel = prefs.progressScope === "book" ? "全书进度" : sourceProgressLabel;
   const active = snapshot.status === "playing" || snapshot.status === "loading";
   const covered = prefs.covered;
   const width = native() ? viewport.width : Math.min(prefs.width, viewport.width - 16);
   const height = Math.max(36, Math.ceil(prefs.fontSize * 1.5 + 12));
   const x = Math.max(0, Math.min(position.x, viewport.width - width));
-  const y = Math.max(0, Math.min(position.y, viewport.height - height - (menu ? Math.min(390, viewport.height - height) : 0)));
+  const pauseForAnnotation = useCallback(() => {
+    autoStart.current = false;
+    pausedForSelection.current = true;
+    if (["playing", "loading"].includes(snapshotRef.current.status)) player.current?.pause();
+  }, []);
+  const annotation = useCompactAnnotation({ text, chunk, paragraphs, disabled: covered || menu, bookId, pause: pauseForAnnotation, notify: setNotice });
+  const extraHeight = menu ? 390 : annotation.isOpen ? 280 : 0;
+  const y = Math.max(0, Math.min(position.y, viewport.height - height - Math.min(extraHeight, viewport.height - height)));
+  const paragraph = paragraphs.find((item) => item.id === chunk?.paragraphId);
   const currentChapterId = chapterId || source.data?.chapter.id;
   const chapterList = directory.data?.chapters ?? [];
 
@@ -173,7 +190,7 @@ function CompactReader({ initialError }: { initialError: string }) {
         anchor.current = { paragraphId: current.paragraphId, offset: current.start };
         setIndex(next.index);
       }
-      if (next.status === "finished" && prefsRef.current.continuous && !prefsRef.current.covered) autoAdvance.current();
+      if (next.status === "finished" && prefsRef.current.continuous && !prefsRef.current.covered && !pausedForSelection.current) autoAdvance.current();
     });
     player.current = instance;
     if (autoStart.current && chunks.length && !prefsRef.current.covered && document.documentElement.dataset.compactWindowHidden !== "true") {
@@ -194,7 +211,7 @@ function CompactReader({ initialError }: { initialError: string }) {
     else player.current?.stop();
   };
   const moveSource = (id: string, isUnit: boolean, playing = active, atEnd = false) => {
-    player.current?.stop(); setMenu(false);
+    player.current?.stop(); setMenu(false); annotation.clear();
     const path = `/compact/books/${bookId}/${isUnit ? "units" : "chapters"}/${id}`;
     navigate(path, { replace: true, state: { autoPlay: playing, startAtEnd: atEnd, resetPosition: true } });
   };
@@ -216,6 +233,7 @@ function CompactReader({ initialError }: { initialError: string }) {
     const next = chunks[nextIndex];
     if (!next || covered) return;
     const wasActive = active;
+    annotation.clear();
     player.current?.stop();
     anchor.current = { paragraphId: next.paragraphId, offset: next.start };
     setIndex(nextIndex); setNotice("");
@@ -231,17 +249,18 @@ function CompactReader({ initialError }: { initialError: string }) {
     else setNotice(directory.isPending ? "目录加载中…" : direction > 0 ? "已到全文末尾" : "已到开头");
   };
   const toggle = () => {
-    if (covered || document.documentElement.dataset.compactWindowHidden === "true" || !chunks.length) return;
+    if (covered || annotation.isOpen || document.documentElement.dataset.compactWindowHidden === "true" || !chunks.length) return;
+    pausedForSelection.current = false;
     setNotice("");
     if (active) player.current?.pause();
     else if (snapshot.status === "paused" && snapshot.paragraphId) player.current?.resume();
     else player.current?.start(index, settings);
   };
-  const cover = () => { autoStart.current = false; player.current?.stop(); setMenu(false); setPreference({ covered: true }); window.getSelection()?.removeAllRanges(); };
+  const cover = () => { autoStart.current = false; player.current?.stop(); setMenu(false); annotation.clear(); setPreference({ covered: true }); };
   useEffect(() => {
     const visibility = (event: Event) => {
       autoStart.current = false;
-      player.current?.stop(); setMenu(false);
+      player.current?.stop(); setMenu(false); annotation.clear();
       setPreference({ covered: (event as CustomEvent<{ hidden: boolean }>).detail.hidden });
       window.getSelection()?.removeAllRanges();
     };
@@ -250,7 +269,7 @@ function CompactReader({ initialError }: { initialError: string }) {
   }, []);
   const returnPath = `/books/${bookId}/${unitId ? "units" : "chapters"}/${unitId || chapterId}${chunk ? `#paragraph-${chunk.paragraphId}` : ""}`;
   const leave = async () => {
-    player.current?.stop();
+    player.current?.stop(); annotation.clear();
     await flushReadingPositions();
     if (window.duobookDesktop) { try { await window.duobookDesktop.closeCompactReader(returnPath); } catch { setNotice("返回阅读页失败，请重试。"); } }
     else navigate(returnPath, { replace: true });
@@ -263,8 +282,8 @@ function CompactReader({ initialError }: { initialError: string }) {
   }, []);
   useEffect(() => {
     if (!window.duobookDesktop) return;
-    void window.duobookDesktop.setCompactWindow({ width: prefs.width, height: menu ? height + 390 : height, alwaysOnTop: prefs.alwaysOnTop, returnPath }).catch(() => setNotice("窗口设置未能应用。"));
-  }, [prefs.width, prefs.alwaysOnTop, height, menu, returnPath]);
+    void window.duobookDesktop.setCompactWindow({ width: prefs.width, height: height + extraHeight, alwaysOnTop: prefs.alwaysOnTop, returnPath }).catch(() => setNotice("窗口设置未能应用。"));
+  }, [prefs.width, prefs.alwaysOnTop, height, extraHeight, returnPath]);
   useEffect(() => {
     const blur = () => { if (prefsRef.current.coverOnBlur) cover(); };
     const hidden = () => { if (document.hidden && prefsRef.current.coverOnBlur) cover(); };
@@ -275,9 +294,9 @@ function CompactReader({ initialError }: { initialError: string }) {
     const key = (event: KeyboardEvent) => {
       if (event.isComposing) return;
       if (event.key === "Escape") { event.preventDefault(); cover(); return; }
-      if (covered || event.ctrlKey || event.altKey || event.metaKey || (event.target as HTMLElement)?.closest("input,select,textarea,[contenteditable=true]")) return;
+      if (covered || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey || (event.target as HTMLElement)?.closest("input,select,textarea,[contenteditable=true]")) return;
       if (["ArrowLeft", "ArrowRight", "PageUp", "PageDown"].includes(event.key)) { event.preventDefault(); step(event.key === "ArrowRight" || event.key === "PageDown" ? 1 : -1); }
-      if (event.code === "Space" && !menu) { event.preventDefault(); toggle(); }
+      if (event.code === "Space" && !menu && !annotation.isOpen) { event.preventDefault(); toggle(); }
     };
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
@@ -294,7 +313,7 @@ function CompactReader({ initialError }: { initialError: string }) {
     const element = row.current;
     if (!element) return;
     const scroll = (event: WheelEvent) => {
-      if (event.ctrlKey || covered) return;
+      if (event.ctrlKey || covered || annotation.isOpen) return;
       event.preventDefault();
       const now = performance.now();
       const delta = Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX;
@@ -323,8 +342,8 @@ function CompactReader({ initialError }: { initialError: string }) {
           const point = drag.current; if (!point || point.pointer !== event.pointerId) return;
           setPosition({ x: Math.max(0, Math.min(viewport.width - width, point.startX + event.clientX - point.x)), y: Math.max(0, Math.min(viewport.height - height, point.startY + event.clientY - point.y)) });
         }} onPointerUp={() => { drag.current = null; }} onPointerCancel={() => { drag.current = null; }}><GripVertical size={16} /></button>
-        <span className="compact-reader__text" ref={text} data-testid="compact-text" data-paragraph-id={covered ? undefined : chunk?.paragraphId} data-start={covered ? undefined : chunk?.start} data-end={covered ? undefined : chunk?.end}>
-          {covered ? <button className="compact-reader__restore" onClick={() => setPreference({ covered: false })}>资料 · 点击恢复</button> : <>{chunk?.text.replace(/\s/g, " ") || status || "本章暂无原文"}</>}
+        <span className="compact-reader__text" ref={text} tabIndex={covered ? undefined : 0} aria-label={covered ? undefined : "单行原文"} onPointerDown={annotation.pauseSelection} onMouseUp={annotation.capture} onKeyUp={annotation.capture} data-testid="compact-text" data-paragraph-id={covered ? undefined : chunk?.paragraphId} data-start={covered ? undefined : chunk?.start} data-end={covered ? undefined : chunk?.end}>
+          {covered ? <button className="compact-reader__restore" onClick={() => setPreference({ covered: false })}>资料 · 点击恢复</button> : paragraph && chunk ? highlightedText(paragraph.text, paragraph.id, source.data?.annotations ?? [], chunk.start, chunk.end, true) : status || "本章暂无原文"}
         </span>
         <span className="compact-reader__percentage" data-testid={covered ? undefined : "compact-progress"} aria-hidden={covered || undefined} aria-label={covered ? undefined : progressLabel} title={covered ? undefined : `${progressLabel}：${progress === null ? "暂无进度" : `${progress}%`}（按当前行末累计原文字数）`}>{covered ? null : progress === null ? "—" : `${progress}%`}</span>
         <span className="compact-reader__indicator" aria-label="单行朗读状态" role="status" title={covered ? "已收起，声音已停止" : status || (active ? "正在朗读" : "准备朗读")}>
@@ -336,16 +355,18 @@ function CompactReader({ initialError }: { initialError: string }) {
           <button aria-label="下一行" aria-keyshortcuts="ArrowRight PageDown" title="下一行 · → / Page Down" onClick={() => step(1)} disabled={!chunks.length}><ChevronRight size={16} /></button>
         </div>
         <button className="compact-reader__pin" aria-label={native() ? "窗口置顶" : "页面内置顶"} aria-pressed={prefs.alwaysOnTop} title={native() ? "窗口置顶" : "页面内置顶（无法置于其他应用之上）"} onClick={() => setPreference({ alwaysOnTop: !prefs.alwaysOnTop })}><Pin size={14} /></button>
-        <button ref={menuButton} className="compact-reader__more" aria-label="更多阅读设置" aria-expanded={menu} title="更多设置" onClick={() => setMenu(!menu)}><MoreHorizontal size={17} /></button>
+        <button ref={menuButton} className="compact-reader__more" aria-label="更多阅读设置" aria-expanded={menu} title="更多设置" onClick={() => { annotation.clear(); setMenu(!menu); }}><MoreHorizontal size={17} /></button>
       </div>
+      {annotation.panel}
       {menu ? <div ref={panel} className="compact-reader__panel" role="dialog" aria-label="单行阅读设置">
         <div className="compact-reader__panel-heading"><strong>阅读设置</strong><button aria-label="关闭阅读设置" onClick={() => { setMenu(false); menuButton.current?.focus(); }}><X size={16} /></button></div>
         <p className="compact-reader__shortcuts">← / Page Up 上一行 · → / Page Down 下一行 · 空格 播放 / 暂停 · Esc 收起</p>
         <CompactShortcutSettings />
-        {!covered && <p className="compact-reader__progress">{progress !== null ? `${progressLabel} ${progress}% · ` : ""}{chunks.length ? `${index + 1} / ${chunks.length} 屏 · 第 ${chunk?.ordinal} 段` : "暂无原文"} · {source.data?.chapter.title}</p>}
+        {!covered && <p className="compact-reader__progress">全书进度 {bookProgress === null ? "—" : `${bookProgress}%`} · {sourceProgressLabel} {sourceProgress === null ? "—" : `${sourceProgress}%`} · {chunks.length ? `${index + 1} / ${chunks.length} 屏 · 第 ${chunk?.ordinal} 段` : "暂无原文"} · {source.data?.chapter.title}</p>}
         {!covered && status ? <p role="status">{status}{snapshot.error ? `：${snapshot.error}` : ""}</p> : null}
         {source.isError || directory.isError ? <button onClick={() => { void source.refetch(); void directory.refetch(); }}>重新加载资料</button> : null}
         <div className="compact-reader__settings">
+          <label>进度显示<select aria-label="进度显示" value={prefs.progressScope} onChange={(event) => setPreference({ progressScope: event.target.value as "book" | "source" })}><option value="book">全书进度</option><option value="source">{sourceProgressLabel}</option></select></label>
           <label>语音模型<select aria-label="语音模型" value={settings.provider} onChange={(event) => setSpeech({ provider: event.target.value as SpeechSettings["provider"] })}><option value="local">本地系统语音</option><option value="mimo">小米 MiMo · V2.5 TTS</option></select></label>
           <label>音色<select aria-label="朗读音色" value={settings.provider === "mimo" ? settings.mimoVoice : settings.localVoice} onChange={(event) => setSpeech(settings.provider === "mimo" ? { mimoVoice: event.target.value } : { localVoice: event.target.value })}>{settings.provider === "mimo" ? MIMO_VOICES.map((voice) => <option key={voice} value={voice}>{voice === "mimo_default" ? "MiMo 默认音色" : voice}</option>) : <><option value="">本机默认中文声音</option>{voices.map((voice) => <option key={voice.voiceURI} value={voice.voiceURI}>{voice.name}</option>)}</>}</select></label>
           <label>声调<select aria-label="朗读声调" value={settings.tone} onChange={(event) => setSpeech({ tone: event.target.value as SpeechSettings["tone"] })}><option value="low">低沉</option><option value="natural">自然</option><option value="bright">明亮</option></select></label>

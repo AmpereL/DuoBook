@@ -24,6 +24,7 @@ function registerCompactReader({ origin, data, preload, getMainWindow }) {
       x: number(value.x, 80, 0, 10000), y: number(value.y, 100, 0, 10000), positions,
       continuous: value.continuous === true, coverOnBlur: value.coverOnBlur === true,
       covered: value.covered === true, alwaysOnTop: value.alwaysOnTop === true,
+      progressScope: value.progressScope === 'source' ? 'source' : 'book',
     };
   };
   const check = (event, onlyReader = false) => {

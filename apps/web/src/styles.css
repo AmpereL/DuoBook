@@ -3146,3 +3146,13 @@ textarea:focus-visible {
 .compact-stage--native .compact-reader { border-radius: 0; border: 0; box-shadow: none; }
 .compact-reader .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 @media (prefers-reduced-motion: reduce) { .compact-reader__controls { transition: none; } }
+
+.compact-reader__text:focus-visible { outline: 1px solid #436852; outline-offset: 1px; }
+.compact-reader__text .unit-original__highlight { padding: 0; }
+.compact-reader__annotation { height: min(280px, calc(100vh - 44px)); padding: 12px; overflow: auto; border-top: 1px solid #d9ddd7; background: #fafaf8; color: #354139; font: 12px/1.5 -apple-system, BlinkMacSystemFont, sans-serif; border-radius: 0 0 7px 7px; }
+.compact-reader__annotation blockquote { margin: 8px 0; padding: 5px 8px; max-height: 54px; overflow: auto; border-left: 2px solid #ad8d50; background: #f4f2eb; white-space: pre-wrap; overflow-wrap: anywhere; }
+.compact-reader__annotation textarea { display: block; width: 100%; height: 80px; resize: none; margin: 8px 0; padding: 7px; border: 1px solid #cbd5cb; border-radius: 4px; background: white; color: #354139; font: inherit; }
+.compact-reader__annotation p { margin: 6px 0; color: #636c65; overflow-wrap: anywhere; }
+.compact-reader__annotation [role="alert"] { color: #9c392b; }
+.compact-reader .compact-reader__note-action { min-height: 30px; padding: 5px 10px; background: #e7ece6; }
+.compact-reader__note-actions { display: flex; gap: 8px; margin: 10px 0; }

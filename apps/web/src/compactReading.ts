@@ -5,11 +5,13 @@ export type ReadingAnchor = { paragraphId: string; offset: number };
 export type CompactPreferences = {
   width: number; fontSize: number; continuous: boolean; coverOnBlur: boolean;
   covered: boolean; alwaysOnTop: boolean; backgroundTransparency: number; x: number; y: number;
+  progressScope: "book" | "source";
   positions: Record<string, ReadingAnchor>;
 };
 export const compactDefaults: CompactPreferences = {
   width: 600, fontSize: 14, continuous: false, coverOnBlur: false,
   covered: false, alwaysOnTop: false, backgroundTransparency: 0, x: 80, y: 100, positions: {},
+  progressScope: "book",
 };
 export const compactKey = "logic-reading-compact";
 export function normalizeCompact(value: unknown): CompactPreferences {
@@ -26,6 +28,7 @@ export function normalizeCompact(value: unknown): CompactPreferences {
     backgroundTransparency: number(data.backgroundTransparency, 0, 0, 100),
     x: number(data.x, 80, 0, 10000), y: number(data.y, 100, 0, 10000),
     continuous: data.continuous === true, coverOnBlur: data.coverOnBlur === true,
+    progressScope: data.progressScope === "source" ? "source" : "book",
     covered: data.covered === true, alwaysOnTop: data.alwaysOnTop === true, positions,
   };
 }

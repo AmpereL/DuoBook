@@ -121,7 +121,13 @@ export interface ChapterListPayload {
   chapters: WorkbenchChapter[];
 }
 
+export interface ReadingProgress {
+  total_characters: number;
+  paragraphs: Array<{ paragraph_id: string; start_character: number; character_count: number }>;
+}
+
 export interface ChapterDetailPayload {
+  reading_progress?: ReadingProgress;
   history: Array<UnitSet & { units: ReadingUnit[] }>;
   book: Book;
   chapter: WorkbenchChapter;
@@ -131,6 +137,7 @@ export interface ChapterDetailPayload {
 }
 
 export interface ReadingUnitPayload {
+  reading_progress?: ReadingProgress;
   book: Book;
   chapter: {
     id: string;

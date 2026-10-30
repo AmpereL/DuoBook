@@ -31,6 +31,7 @@ test("单行长句与 Unicode 完整分页，调宽字号后仍可回装原文�
   const text = page.getByTestId("compact-text");
   await expect(text).toHaveAttribute("data-paragraph-id");
   await page.getByRole("button", { name: "更多阅读设置" }).click();
+  await page.getByLabel("进度显示", { exact: true }).selectOption("source");
   await page.getByLabel("单行窗口宽度").press("Home");
   await page.getByLabel("单行字号").press("End");
   await page.getByRole("button", { name: "关闭阅读设置" }).click();
@@ -244,6 +245,11 @@ test("已拆分单元可进入单行阅读，按单元顺序切换并返回对�
   await page.goto(`/books/book_learning/units/${units[0].id}`);
   await page.getByRole("button", { name: "单行阅读", exact: true }).click();
   await expect(page.getByTestId("compact-text")).toHaveText("单元1的一行原文。");
+  await expect(page.getByTestId("compact-progress")).toHaveAccessibleName("全书进度");
+  await expect(page.getByTestId("compact-progress")).toHaveText("—");
+  await page.getByRole("button", { name: "更多阅读设置" }).click();
+  await page.getByLabel("进度显示", { exact: true }).selectOption("source");
+  await page.getByRole("button", { name: "关闭阅读设置" }).click();
   await expect(page.getByTestId("compact-progress")).toHaveAccessibleName("本单元进度");
   await expect(page.getByTestId("compact-progress")).toHaveText("100.00%");
   await page.getByRole("button", { name: "下一行", exact: true }).click();
