@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
 
 (async () => {
   const data = fs.mkdtempSync(path.join(os.tmpdir(), 'logic-reading-resume-'));
-  const executablePath = process.env.DUOBOOK_SMOKE_EXECUTABLE || path.resolve('release/mac-arm64/逻辑阅读.app/Contents/MacOS/逻辑阅读');
+  const executablePath = process.env.DUOBOOK_SMOKE_EXECUTABLE || path.resolve('release/public/mac-arm64/逻辑阅读.app/Contents/MacOS/逻辑阅读');
   const env = { ...process.env, DUOBOOK_SMOKE_DIR: data }; delete env.ELECTRON_RUN_AS_NODE;
   let app;
   let book, targetId;

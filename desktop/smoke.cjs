@@ -5,8 +5,9 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 
 (async () => {
+  const publicBuild = process.env.DUOBOOK_SMOKE_PRIVATE !== '1';
   const data = fs.mkdtempSync(path.join(os.tmpdir(), 'duobook-package-'));
-  const executablePath = process.env.DUOBOOK_SMOKE_EXECUTABLE || path.resolve('release/mac-arm64/逻辑阅读.app/Contents/MacOS/逻辑阅读');
+  const executablePath = process.env.DUOBOOK_SMOKE_EXECUTABLE || path.resolve('release/public/mac-arm64/逻辑阅读.app/Contents/MacOS/逻辑阅读');
   const env = { ...process.env, DUOBOOK_SMOKE_DIR: data };
   delete env.ELECTRON_RUN_AS_NODE;
   const app = await electron.launch({ executablePath, env, timeout: 60000 });
@@ -20,13 +21,13 @@ const assert = require('node:assert/strict');
     const config = await page.evaluate(async () => (await fetch('/api/v1/settings/model')).json());
     const apiVersion = await page.evaluate(async () => (await fetch('/openapi.json')).json()).then((spec) => spec.info.version);
     assert.equal(apiVersion, require('../package.json').version);
-    assert.equal(config.provider, 'anthropic');
-    assert.equal(config.model, 'mimo-v2.5-pro');
-    assert.equal(config.has_api_key, true);
+    assert.equal(config.provider, publicBuild ? 'local' : 'anthropic');
+    assert.equal(config.model, publicBuild ? '' : 'mimo-v2.5-pro');
+    assert.equal(config.has_api_key, !publicBuild);
     const speechConfig = await page.evaluate(async () => (await fetch('/api/v1/speech/config')).json());
-    assert.equal(speechConfig.base_url, 'https://api.xiaomimimo.com/v1');
-    assert.equal(speechConfig.credential_source, 'speech');
-    assert.equal(speechConfig.configured, true);
+    assert.equal(speechConfig.base_url, publicBuild ? '' : 'https://api.xiaomimimo.com/v1');
+    assert.equal(speechConfig.configured, !publicBuild);
+    if (!publicBuild) assert.equal(speechConfig.credential_source, 'speech');
     assert.equal('api_key' in speechConfig, false);
     await page.getByRole('button', { name: '打开工作台' }).click();
     await page.getByRole('heading', { name: '明确目标', exact: true }).waitFor({ state: 'attached' });
@@ -86,6 +87,7 @@ const assert = require('node:assert/strict');
     assert.match(exported.type, /text\/markdown/);
     assert.match(exported.body, /# 阅读笔记/);
     await page.getByRole('link', { name: '模型设置' }).click();
+    if (publicBuild) await page.getByLabel('语音 API Key', { exact: true }).fill('public-smoke-synthetic-credential');
     await page.getByLabel('语音请求超时（秒）', { exact: true }).fill('90');
     await page.getByRole('button', { name: '保存语音设置', exact: true }).click();
     await page.getByText('语音配置已保存。', { exact: true }).waitFor();
@@ -93,7 +95,7 @@ const assert = require('node:assert/strict');
     await page.getByRole('button', { name: '选择图标 4：书签与分支' }).click();
     assert.equal(await page.evaluate(() => window.duobookDesktop.getAppIcon()), 4);
     await page.screenshot({ path: 'release/desktop-smoke.png' });
-    console.log('Packaged app passed: library, chapter page, mind map, icon selection, private defaults loaded.');
+    console.log('Packaged app passed: library, chapter page, mind map, icon selection, distribution defaults verified.');
   } finally { await app.close(); }
   const reopened = await electron.launch({ executablePath, env, timeout: 60000 });
   try {

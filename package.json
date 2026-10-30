@@ -1,6 +1,6 @@
 {
   "name": "duobook",
-  "version": "1.2.9",
+  "version": "1.2.10",
   "private": true,
   "main": "desktop/main.cjs",
   "description": "逻辑阅读 · 按章深读工作台",
@@ -14,8 +14,10 @@
     "test:e2e": "npm --workspace apps/web run test:e2e",
     "lint:web": "npm --workspace apps/web run lint",
     "test": "npm run test:e2e",
-    "build:desktop:backend": "DUOBOOK_INCLUDE_PRIVATE_KEY=1 .venv-macos13/bin/python desktop/build-backend.py",
-    "package:mac": "npm run build:web && npm run build:desktop:backend && .venv/bin/python desktop/make-icon.py && .venv/bin/python desktop/package-mac.py"
+    "build:desktop:backend": ".venv-macos13/bin/python desktop/build-backend.py",
+    "package:mac": "DUOBOOK_INCLUDE_PRIVATE_KEY=0 npm run package:mac:bundle",
+    "package:mac:private": "DUOBOOK_INCLUDE_PRIVATE_KEY=1 npm run package:mac:bundle",
+    "package:mac:bundle": "npm run build:web && npm run build:desktop:backend && .venv/bin/python desktop/make-icon.py && .venv/bin/python desktop/package-mac.py"
   },
   "devDependencies": {
     "electron": "^44.4.3",

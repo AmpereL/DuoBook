@@ -7,13 +7,14 @@
 <p align="center"><strong>先看结构，再读原文。按章拆解，一层层读懂一本书。</strong></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.2.9-285643" alt="版本 1.2.9" />
+  <img src="https://img.shields.io/badge/version-1.2.10-285643" alt="版本 1.2.10" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License" /></a>
   <img src="https://img.shields.io/badge/platform-Web%20%7C%20macOS-555555" alt="Web 与 macOS" />
   <img src="https://img.shields.io/badge/storage-SQLite-4479A1" alt="本地 SQLite 存储" />
 </p>
 
 <p align="center">
+  <a href="#下载安装">下载安装</a> ·
   <a href="#功能亮点">功能亮点</a> ·
   <a href="#截图导览">截图导览</a> ·
   <a href="#使用场景">使用场景</a> ·
@@ -23,6 +24,25 @@
 </p>
 
 ![逻辑阅读书架：从最近阅读位置继续，集中管理书籍与章节](docs/screenshots/01-library.png)
+
+## 下载安装
+
+<p>
+  <a href="https://github.com/AmpereL/DuoBook/releases/download/v1.2.10/LogicReading-1.2.10-macOS-arm64.dmg"><img src="https://img.shields.io/badge/下载-macOS_Apple_Silicon_DMG-285643?style=for-the-badge&logo=apple" alt="下载 macOS Apple Silicon 公开版 DMG" /></a>
+  <a href="https://github.com/AmpereL/DuoBook/releases"><img src="https://img.shields.io/badge/GitHub-所有发行版本-181717?style=for-the-badge&logo=github" alt="查看 GitHub Releases" /></a>
+</p>
+
+| 文件 | 下载 |
+| --- | --- |
+| macOS Apple Silicon 安装包（推荐） | [LogicReading-1.2.10-macOS-arm64.dmg](https://github.com/AmpereL/DuoBook/releases/download/v1.2.10/LogicReading-1.2.10-macOS-arm64.dmg) |
+| 同版本 App 压缩包 | [ZIP 下载](https://github.com/AmpereL/DuoBook/releases/download/v1.2.10/LogicReading-1.2.10-macOS-arm64.zip) |
+| 安装说明与完整校验和 | [安装说明](https://github.com/AmpereL/DuoBook/releases/download/v1.2.10/INSTALL.md) · [SHA-256](https://github.com/AmpereL/DuoBook/releases/download/v1.2.10/SHA256SUMS.txt) · [包内扫描结果](https://github.com/AmpereL/DuoBook/releases/download/v1.2.10/public-audit.json) |
+
+公开包**不含开发者私人 API Key、模型预配置、私人书籍或数据库**。打开 DMG，把“逻辑阅读”拖入 Applications，即可启动；无需安装 Python 或 Node.js。首次启动可直接阅读和使用本地系统语音，语义拆分及 MiMo 听读请在设置中填写自己的 Key。
+
+本次提供 Apple Silicon（M 系列 / ARM64）Mac 版本。最低系统要求 macOS 13，已在 macOS 15 测试，macOS 13 真机仍待验收。安装包采用 ad-hoc 签名，尚未进行 Apple 公证，首次打开可能有安全提示；请参阅 [公开版安装说明](desktop/公开分发说明.md)。当前没有 Intel Mac、Windows 或 Linux 桌面包。
+
+升级沿用原数据目录，保留已有书籍、笔记及用户自行保存的加密设置。
 
 ## 项目介绍
 
@@ -42,7 +62,7 @@
                     笔记汇总与导出，下次从原位置继续
 ```
 
-当前版本 **1.2.9**。导入时不自动解析整本书；每次拆分只处理你选中的一章。
+当前版本 **1.2.10**。导入时不自动解析整本书；每次拆分只处理你选中的一章。
 
 ## 功能亮点
 
@@ -267,17 +287,28 @@ node --test desktop/compact-shortcut.test.cjs
 DUOBOOK_E2E_API_PORT=8011 DUOBOOK_E2E_WEB_PORT=5181 npm run test:e2e
 ```
 
-桌面启动与回归脚本位于 `desktop/*-smoke.cjs` 及 `desktop/smoke.cjs`，需要本机桌面包和图形会话。1.2.9 已记录的验证包括后端 53 项、全量浏览器 41 项，以及桌面单行、位置、语音和快捷键回归；详见 [修复记录](docs/修复记录.md)。
+桌面启动与回归脚本位于 `desktop/*-smoke.cjs` 及 `desktop/smoke.cjs`，需要本机桌面包和图形会话。1.2.10 已记录的验证包括后端 59 项、全量浏览器 41 项，以及桌面单行、位置、语音和快捷键回归；详见 [修复记录](docs/修复记录.md)。
 
-### macOS 私人分发包
+### macOS 公开版打包
 
 ```bash
 npm run package:mac
 ```
 
-当前脚本面向本机私人分发，需先准备 `.venv-macos13`、PyInstaller、Pillow 和本机模型配置 `services/api/data/model-defaults.json`；语音配置文件为 `speech-defaults.json`。脚本生成 ARM64 App、DMG 和 ZIP，版本取根目录 `package.json`。
+先准备 `.venv-macos13`（Python 3.12）、项目 `.venv`、PyInstaller 和 npm 依赖。默认命令强制公开模式，**不需要私人模型配置文件**，输出至 `release/public/`。后端暂存、App 与安装包在公开 / 私人模式下使用不同目录；模式和版本不匹配、包内存在 Key 或用户数据时会停止打包。
 
-个人包可能包含本机授权配置，请自行保管。当前 GitHub 仓库提供源码，个人 DMG / ZIP 未上传到 Releases。
+版本取根目录 `package.json`，构建后生成 DMG、ZIP、安装说明、校验和及公开扫描结果。构建详情见 [公开分发技术说明](docs/公开分发与Release流程.md)。
+
+<details>
+<summary><strong>个人预配置包（仅限自己保管）</strong></summary>
+
+```bash
+npm run package:mac:private
+```
+
+该命令明确开启私人配置复制，读取本机被 Git 忽略的 `model-defaults.json` / `speech-defaults.json`，输出到 `release/private/`。此类包可能包含 Key，不用于公开 Release。详见 [私人分发说明](desktop/分发说明.md)。
+
+</details>
 
 ## 常见问题
 

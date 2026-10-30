@@ -12,7 +12,7 @@ let backend, window, origin, secretFile, saved;
 let flushReadingProgress = async () => {};
 let finishingQuit = false, flushingQuit = false;
 const token = randomBytes(32).toString('hex');
-const defaults = { provider: 'anthropic', base_url: 'https://token-plan-cn.xiaomimimo.com/anthropic', model: 'mimo-v2.5-pro', timeout: 300, api_key: '' };
+const defaults = { provider: 'local', base_url: '', model: '', timeout: 300, api_key: '' };
 if (process.env.DUOBOOK_SMOKE_DIR) app.setPath('userData', process.env.DUOBOOK_SMOKE_DIR);
 if (!app.requestSingleInstanceLock()) app.quit();
 else {
@@ -68,6 +68,8 @@ async function start() {
     DUOBOOK_WEB_DIR: path.join(resources, 'web'), DUOBOOK_DESKTOP_TOKEN: token,
     DUOBOOK_LLM_PROVIDER: saved.provider, DUOBOOK_LLM_BASE_URL: saved.base_url,
     DUOBOOK_LLM_MODEL: saved.model, DUOBOOK_LLM_API_KEY: saved.api_key || '', DUOBOOK_LLM_TIMEOUT_SECONDS: String(saved.timeout) };
+  // Desktop credentials come from explicit per-user settings, never a build shell.
+  for (const name of Object.keys(env)) if (name.startsWith('DUOBOOK_TTS_')) delete env[name];
   if (savedSpeech?.api_key) Object.assign(env, {
     DUOBOOK_TTS_BASE_URL: savedSpeech.base_url, DUOBOOK_TTS_API_KEY: savedSpeech.api_key,
     DUOBOOK_TTS_TIMEOUT: String(savedSpeech.timeout || 120),

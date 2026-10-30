@@ -9,7 +9,7 @@ const assert = require('node:assert/strict');
 (async () => {
   const data = fs.mkdtempSync(path.join(os.tmpdir(), 'logic-reading-speech-'));
   const env = { ...process.env, DUOBOOK_SMOKE_DIR: data }; delete env.ELECTRON_RUN_AS_NODE;
-  const app = await electron.launch({ executablePath: process.env.DUOBOOK_SMOKE_EXECUTABLE || path.resolve('release/mac-arm64/逻辑阅读.app/Contents/MacOS/逻辑阅读'), env, timeout: 60000 });
+  const app = await electron.launch({ executablePath: process.env.DUOBOOK_SMOKE_EXECUTABLE || path.resolve('release/public/mac-arm64/逻辑阅读.app/Contents/MacOS/逻辑阅读'), env, timeout: 60000 });
   const audio = fs.readFileSync(path.join(__dirname, 'fixtures/mimo-voice.wav'));
   const live = process.env.DUOBOOK_REAL_SPEECH === '1';
   let responses = 0;
